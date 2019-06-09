@@ -1,5 +1,5 @@
 enclave {
-    from "Sealing/Sealing.edl" import *;
+    from "Sealing2/Sealing2.edl" import *;
 
     trusted {
         /* define ECALLs here. */

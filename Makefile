@@ -118,10 +118,10 @@ Crypto_Library_Name := sgx_tcrypto
 
 # Enclave_Cpp_Files := Enclave/Enclave.cpp $(wildcard Enclave/Edger8rSyntax/*.cpp) $(wildcard Enclave/TrustedLibrary/*.cpp)
 Enclave_Cpp_Files := Enclave/Enclave.cpp Enclave/Sealing/Sealing.cpp
-Enclave2_Cpp_Files := Enclave2/Enclave.cpp Enclave2/Sealing/Sealing.cpp
+Enclave2_Cpp_Files := Enclave2/Enclave2.cpp Enclave2/Sealing2/Sealing2.cpp
 
 # Enclave_Include_Paths := -IInclude -IEnclave -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc -I$(SGX_SDK)/include/stlport
-Enclave_Include_Paths := -IEnclave -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc -I$(SGX_SDK)/include/stlport
+Enclave_Include_Paths := -IEnclave -IEnclave2 -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc -I$(SGX_SDK)/include/stlport
 
 Enclave_C_Flags := $(SGX_COMMON_CFLAGS) -nostdinc -fvisibility=hidden -fpie -fstack-protector $(Enclave_Include_Paths)
 Enclave_Cpp_Flags := $(Enclave_C_Flags) -std=c++03 -nostdinc++
@@ -143,7 +143,7 @@ Enclave_Config_File := Enclave/Enclave.config.xml
 
 Enclave2_Name := enclave2.so
 Signed_Enclave2_Name := enclave2.signed.so
-Enclave2_Config_File := Enclave2/Enclave.config.xml
+Enclave2_Config_File := Enclave2/Enclave2.config.xml
 
 ifeq ($(SGX_MODE), HW)
 ifneq ($(SGX_DEBUG), 1)
@@ -184,7 +184,7 @@ App/Enclave_u.o: App/Enclave_u.c
 	@$(CC) $(App_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 
-App/Enclave2_u.c: $(-) Enclave2/Enclave2.edl
+App/Enclave2_u.c: $(SGX_EDGER8R) Enclave2/Enclave2.edl
 	@cd App && $(SGX_EDGER8R) --untrusted ../Enclave2/Enclave2.edl --search-path ../Enclave2 --search-path $(SGX_SDK)/include
 	@echo "GEN  =>  $@"
 
@@ -202,6 +202,25 @@ $(App_Name): App/Enclave_u.o App/Enclave2_u.o $(App_Cpp_Objects)
 
 
 ######## Enclave Objects ########
+Enclave2/Enclave2_t.c: $(SGX_EDGER8R) Enclave2/Enclave2.edl
+	@cd Enclave2 && $(SGX_EDGER8R) --trusted ../Enclave2/Enclave2.edl --search-path ../Enclave2 --search-path $(SGX_SDK)/include
+	@echo "GEN  =>  $@"
+
+Enclave2/Enclave2_t.o: Enclave2/Enclave2_t.c
+	@$(CC) $(Enclave_C_Flags) -c $< -o $@
+	@echo "CC   <=  $<"
+
+Enclave2/%.o: Enclave2/%.cpp
+	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
+	@echo "CXX  <=  $<"
+
+$(Enclave2_Name): Enclave2/Enclave2_t.o $(Enclave2_Cpp_Objects)
+	@$(CXX) $^ -o $@ $(Enclave_Link_Flags)
+	@echo "LINK =>  $@"
+
+$(Signed_Enclave2_Name): $(Enclave2_Name)
+	@$(SGX_ENCLAVE_SIGNER) sign -key Enclave2/Enclave2_private.pem -enclave $(Enclave2_Name) -out $@ -config $(Enclave2_Config_File)
+	@echo "SIGN =>  $@"
 
 Enclave/Enclave_t.c: $(SGX_EDGER8R) Enclave/Enclave.edl
 	@cd Enclave && $(SGX_EDGER8R) --trusted ../Enclave/Enclave.edl --search-path ../Enclave --search-path $(SGX_SDK)/include
@@ -221,26 +240,6 @@ $(Enclave_Name): Enclave/Enclave_t.o $(Enclave_Cpp_Objects)
 
 $(Signed_Enclave_Name): $(Enclave_Name)
 	@$(SGX_ENCLAVE_SIGNER) sign -key Enclave/Enclave_private.pem -enclave $(Enclave_Name) -out $@ -config $(Enclave_Config_File)
-	@echo "SIGN =>  $@"
-
-Enclave2/Enclave_t.c: $(SGX_EDGER8R) Enclave2/Enclave2.edl
-	@cd Enclave2 && $(SGX_EDGER8R) --trusted ../Enclave2/Enclave2.edl --search-path ../Enclave2 --search-path $(SGX_SDK)/include
-	@echo "GEN  =>  $@"
-
-Enclave2/Enclave_t.o: Enclave2/Enclave_t.c
-	@$(CC) $(Enclave_C_Flags) -c $< -o $@
-	@echo "CC   <=  $<"
-
-Enclave2/%.o: Enclave2/%.cpp
-	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
-	@echo "CXX  <=  $<"
-
-$(Enclave2_Name): Enclave2/Enclave_t.o $(Enclave_Cpp_Objects)
-	@$(CXX) $^ -o $@ $(Enclave_Link_Flags)
-	@echo "LINK =>  $@"
-
-$(Signed_Enclave2_Name): $(Enclave2_Name)
-	@$(SGX_ENCLAVE_SIGNER) sign -key Enclave2/Enclave_private.pem -enclave $(Enclave2_Name) -out $@ -config $(Enclave2_Config_File)
 	@echo "SIGN =>  $@"
 
 .PHONY: clean

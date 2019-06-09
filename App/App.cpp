@@ -1,11 +1,14 @@
 #include <stdio.h>
 #include <iostream>
 #include "Enclave_u.h"
+#include "Enclave2_u.h"
 #include "sgx_urts.h"
 #include "sgx_utils/sgx_utils.h"
 
 /* Global EID shared by multiple threads */
 sgx_enclave_id_t global_eid = 0;
+sgx_enclave_id_t global2_eid = 1;
+
 
 // OCall implementations
 void ocall_print(const char* str) {
@@ -17,6 +20,10 @@ int main(int argc, char const *argv[]) {
         std::cout << "Fail to initialize enclave." << std::endl;
         return 1;
     }
+    if (initialize_enclave(&global2_eid, "enclave2.token", "enclave2.signed.so") < 0) {
+        std::cout << "Fail to initialize enclave." << std::endl;
+        return 1;
+    }
     int ptr;
     sgx_status_t status = generate_random_number(global_eid, &ptr);
     std::cout << status << std::endl;
@@ -24,6 +31,14 @@ int main(int argc, char const *argv[]) {
         std::cout << "noob" << std::endl;
     }
     printf("Random number: %d\n", ptr);
+
+    int ptr2;
+    sgx_status_t status2 = generate_random_number2(global2_eid, &ptr2);
+    std::cout << status2 << std::endl;
+    if (status != SGX_SUCCESS) {
+        std::cout << "noob" << std::endl;
+    }
+    printf("Random number: %d\n", ptr2);
 
     // Seal the random number
     size_t sealed_size = sizeof(sgx_sealed_data_t) + sizeof(ptr);

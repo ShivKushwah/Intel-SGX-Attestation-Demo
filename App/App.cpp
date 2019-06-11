@@ -24,8 +24,17 @@ int main(int argc, char const *argv[]) {
         std::cout << "Fail to initialize enclave." << std::endl;
         return 1;
     }
+    sgx_status_t status;
+    
+    uint32_t ret_status;
+    status = test_create_session(global_eid, &ret_status, global_eid, global2_eid);
+    std::cout << status << std::endl;
+    if (status != SGX_SUCCESS) {
+        std::cout << "noob" << std::endl;
+    }
+    
     int ptr;
-    sgx_status_t status = generate_random_number(global_eid, &ptr);
+    status = generate_random_number(global_eid, &ptr);
     std::cout << status << std::endl;
     if (status != SGX_SUCCESS) {
         std::cout << "noob" << std::endl;

@@ -55,6 +55,132 @@ typedef struct _la_dh_session_t
     };
 } dh_session_t;
 
+//other
+#include <stdio.h>
+#include <string.h>
+
+//datatypes.h
+#include "sgx_tseal.h"
+
+#define DH_KEY_SIZE        20
+#define NONCE_SIZE         16
+#define MAC_SIZE           16
+#define MAC_KEY_SIZE       16
+#define PADDING_SIZE       16
+
+#define TAG_SIZE        16
+#define IV_SIZE            12
+
+#define DERIVE_MAC_KEY      0x0
+#define DERIVE_SESSION_KEY  0x1
+#define DERIVE_VK1_KEY      0x3
+#define DERIVE_VK2_KEY      0x4
+
+#define CLOSED 0x0
+#define IN_PROGRESS 0x1
+#define ACTIVE 0x2
+
+#define MESSAGE_EXCHANGE 0x0
+#define ENCLAVE_TO_ENCLAVE_CALL 0x1
+
+#define INVALID_ARGUMENT                   -2   ///< Invalid function argument
+#define LOGIC_ERROR                        -3   ///< Functional logic error
+#define FILE_NOT_FOUND                     -4   ///< File not found
+
+//EnclaveMessageExchange.cpp
+#include "sgx_trts.h"
+#include "sgx_utils.h"
+#include "sgx_eid.h"
+#include "sgx_ecp_types.h"
+#include "sgx_thread.h"
+#include "sgx_tcrypto.h"
+
+//Create a session with the destination enclave
+ATTESTATION_STATUS create_session(sgx_enclave_id_t src_enclave_id,
+                         sgx_enclave_id_t dest_enclave_id,
+                         dh_session_t *session_info)
+{
+    sgx_dh_msg1_t dh_msg1;            //Diffie-Hellman Message 1
+    sgx_key_128bit_t dh_aek;        // Session Key
+    sgx_dh_msg2_t dh_msg2;            //Diffie-Hellman Message 2
+    sgx_dh_msg3_t dh_msg3;            //Diffie-Hellman Message 3
+    uint32_t session_id;
+    uint32_t retstatus;
+    sgx_status_t status = SGX_SUCCESS;
+    sgx_dh_session_t sgx_dh_session;
+    sgx_dh_session_enclave_identity_t responder_identity;
+
+    if(!session_info)
+    {
+        return INVALID_PARAMETER_ERROR;
+    }
+
+    memset(&dh_aek,0, sizeof(sgx_key_128bit_t));
+    memset(&dh_msg1, 0, sizeof(sgx_dh_msg1_t));
+    memset(&dh_msg2, 0, sizeof(sgx_dh_msg2_t));
+    memset(&dh_msg3, 0, sizeof(sgx_dh_msg3_t));
+    memset(session_info, 0, sizeof(dh_session_t));
+
+    //Intialize the session as a session initiator
+    status = sgx_dh_init_session(SGX_DH_SESSION_INITIATOR, &sgx_dh_session);
+    if(SGX_SUCCESS != status)
+    {
+            return status;
+    }
+
+    /* 
+    
+    //Ocall to request for a session with the destination enclave and obtain session id and Message 1 if successful
+    status = session_request_ocall(&retstatus, src_enclave_id, dest_enclave_id, &dh_msg1, &session_id);
+    if (status == SGX_SUCCESS)
+    {
+        if ((ATTESTATION_STATUS)retstatus != SUCCESS)
+            return ((ATTESTATION_STATUS)retstatus);
+    }
+    else
+    {
+        return ATTESTATION_SE_ERROR;
+    }
+    //Process the message 1 obtained from desination enclave and generate message 2
+    status = sgx_dh_initiator_proc_msg1(&dh_msg1, &dh_msg2, &sgx_dh_session);
+    if(SGX_SUCCESS != status)
+    {
+         return status;
+    }
+
+    //Send Message 2 to Destination Enclave and get Message 3 in return
+    status = exchange_report_ocall(&retstatus, src_enclave_id, dest_enclave_id, &dh_msg2, &dh_msg3, session_id);
+    if (status == SGX_SUCCESS)
+    {
+        if ((ATTESTATION_STATUS)retstatus != SUCCESS)
+            return ((ATTESTATION_STATUS)retstatus);
+    }
+    else
+    {
+        return ATTESTATION_SE_ERROR;
+    }
+
+    //Process Message 3 obtained from the destination enclave
+    status = sgx_dh_initiator_proc_msg3(&dh_msg3, &sgx_dh_session, &dh_aek, &responder_identity);
+    if(SGX_SUCCESS != status)
+    {
+        return status;
+    }
+
+    // Verify the identity of the destination enclave
+    if(verify_peer_enclave_trust(&responder_identity) != SUCCESS)
+    {
+        return INVALID_SESSION;
+    }
+    */
+
+    memcpy(session_info->active.AEK, &dh_aek, sizeof(sgx_key_128bit_t));
+    session_info->session_id = session_id;
+    session_info->active.counter = 0;
+    session_info->status = ACTIVE;
+    memset(&dh_aek,0, sizeof(sgx_key_128bit_t));
+    return status;
+}
 
 int generate_random_number() {
     ocall_print("Processing random number generation...");

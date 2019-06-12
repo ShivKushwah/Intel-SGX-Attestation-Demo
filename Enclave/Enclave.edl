@@ -1,6 +1,7 @@
 enclave {
     from "Sealing/Sealing.edl" import *;
     include "sgx_eid.h"
+    include "sgx_dh.h"
 
     trusted {
         /* define ECALLs here. */
@@ -11,5 +12,6 @@ enclave {
     untrusted {
         /* define OCALLs here. */
         void ocall_print([in, string]const char* str);
+        uint32_t session_request_ocall(sgx_enclave_id_t src_enclave_id, sgx_enclave_id_t dest_enclave_id, [out] sgx_dh_msg1_t *dh_msg1,[out] uint32_t *session_id);
     };
 };

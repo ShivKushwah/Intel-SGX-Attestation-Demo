@@ -127,8 +127,6 @@ ATTESTATION_STATUS create_session(sgx_enclave_id_t src_enclave_id,
     {
             return status;
     }
-
-    /* 
     
     //Ocall to request for a session with the destination enclave and obtain session id and Message 1 if successful
     status = session_request_ocall(&retstatus, src_enclave_id, dest_enclave_id, &dh_msg1, &session_id);
@@ -137,6 +135,7 @@ ATTESTATION_STATUS create_session(sgx_enclave_id_t src_enclave_id,
         if ((ATTESTATION_STATUS)retstatus != SUCCESS)
             return ((ATTESTATION_STATUS)retstatus);
     }
+    /* 
     else
     {
         return ATTESTATION_SE_ERROR;
@@ -196,7 +195,7 @@ uint32_t test_create_session(sgx_enclave_id_t src_enclave_id,
     dh_session_t dest_session_info;
     
     //Core reference code function for creating a session
-    //ke_status = create_session(src_enclave_id, dest_enclave_id, &dest_session_info);
+    ke_status = create_session(src_enclave_id, dest_enclave_id, &dest_session_info);
     /* 
     //Insert the session information into the map under the corresponding destination enclave id
     if(ke_status == SUCCESS)

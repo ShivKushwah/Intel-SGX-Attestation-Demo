@@ -4,6 +4,11 @@
 #include "sgx_eid.h"
 #include "sgx_dh.h"
 
+//other
+#include <stdio.h>
+#include <string.h>
+#include <map>
+
 //datatypes.h
 typedef struct _session_id_tracker_t
 {
@@ -29,6 +34,35 @@ typedef uint32_t ATTESTATION_STATUS;
 #define ENCLAVE_TRUST_ERROR              0xED
 #define ENCRYPT_DECRYPT_ERROR            0xEE
 #define DUPLICATE_SESSION                0xEF
+
+//datatypes.h
+//datatypes.h
+#include "sgx_tseal.h"
+
+#define DH_KEY_SIZE        20
+#define NONCE_SIZE         16
+#define MAC_SIZE           16
+#define MAC_KEY_SIZE       16
+#define PADDING_SIZE       16
+
+#define TAG_SIZE        16
+#define IV_SIZE            12
+
+#define DERIVE_MAC_KEY      0x0
+#define DERIVE_SESSION_KEY  0x1
+#define DERIVE_VK1_KEY      0x3
+#define DERIVE_VK2_KEY      0x4
+
+#define CLOSED 0x0
+#define IN_PROGRESS 0x1
+#define ACTIVE 0x2
+
+#define MESSAGE_EXCHANGE 0x0
+#define ENCLAVE_TO_ENCLAVE_CALL 0x1
+
+#define INVALID_ARGUMENT                   -2   ///< Invalid function argument
+#define LOGIC_ERROR                        -3   ///< Functional logic error
+#define FILE_NOT_FOUND                     -4   ///< File not found
 
 //dh_session_protocol.h
 #include "sgx_ecp_types.h"
@@ -66,6 +100,7 @@ typedef struct _la_dh_session_t
 #define MAX_SESSION_COUNT  16
 
 session_id_tracker_t *g_session_id_tracker[MAX_SESSION_COUNT];
+//std::map<sgx_enclave_id_t, dh_session_t>g_dest_session_info_map;
 
 
 
@@ -130,25 +165,24 @@ ATTESTATION_STATUS session_request(sgx_enclave_id_t src_enclave_id,
         return MALLOC_ERROR;
     }
 
-    ocall_print("here!");
-
-    /*
 
     memset(g_session_id_tracker[*session_id], 0, sizeof(session_id_tracker_t));
     g_session_id_tracker[*session_id]->session_id = *session_id;
     session_info.status = IN_PROGRESS;
 
+    ocall_print("here!");
+
     //Generate Message1 that will be returned to Source Enclave
     status = sgx_dh_responder_gen_msg1((sgx_dh_msg1_t*)dh_msg1, &sgx_dh_session);
     if(SGX_SUCCESS != status)
     {
-        SAFE_FREE(g_session_id_tracker[*session_id]);
+        free(g_session_id_tracker[*session_id]);
         return status;
     }
+    /* 
     memcpy(&session_info.in_progress.dh_session, &sgx_dh_session, sizeof(sgx_dh_session_t));
     //Store the session information under the correspoding source enlave id key
     g_dest_session_info_map.insert(std::pair<sgx_enclave_id_t, dh_session_t>(src_enclave_id, session_info));
-    
-    return status;
     */
+    return status;
 }

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <iostream>
+#include <map>
 #include "sgx_dh.h"
 #include "Enclave_u.h"
 #include "Enclave2_u.h"
@@ -19,6 +20,8 @@ typedef uint32_t ATTESTATION_STATUS;
 sgx_enclave_id_t global_eid = 0;
 sgx_enclave_id_t global2_eid = 1;
 
+std::map<sgx_enclave_id_t, uint32_t>g_enclave_id_map;
+
 
 // OCall implementations
 void ocall_print(const char* str) {
@@ -27,8 +30,6 @@ void ocall_print(const char* str) {
 
 ATTESTATION_STATUS session_request_ocall(sgx_enclave_id_t src_enclave_id, sgx_enclave_id_t dest_enclave_id, sgx_dh_msg1_t* dh_msg1, uint32_t* session_id)
 {
-    printf("Got here!");
-    /*
 	uint32_t status = 0;
 	sgx_status_t ret = SGX_SUCCESS;
 	uint32_t temp_enclave_no;
@@ -42,45 +43,65 @@ ATTESTATION_STATUS session_request_ocall(sgx_enclave_id_t src_enclave_id, sgx_en
 	{
 		return INVALID_SESSION;
 	}
-
+    
 	switch(temp_enclave_no)
 	{
 		case 1:
-			ret = Enclave1_session_request(dest_enclave_id, &status, src_enclave_id, dh_msg1, session_id);
+			ret = session_request(dest_enclave_id, &status, src_enclave_id, dh_msg1, session_id);
 			break;
-		case 2:
-			ret = Enclave2_session_request(dest_enclave_id, &status, src_enclave_id, dh_msg1, session_id);
+		case 2: //TODO change case2 and case3 as per online
+			ret = session_request(dest_enclave_id, &status, src_enclave_id, dh_msg1, session_id);
 			break;
 		case 3:
-			ret = Enclave3_session_request(dest_enclave_id, &status, src_enclave_id, dh_msg1, session_id);
+			ret = session_request(dest_enclave_id, &status, src_enclave_id, dh_msg1, session_id);
 			break;
 	}
-	if (ret == SGX_SUCCESS)
-		return (ATTESTATION_STATUS)status;
-	else
-    */	
-	    return INVALID_SESSION;
+	if (ret == SGX_SUCCESS){
+        return (ATTESTATION_STATUS)status;
+
+    } else {
+
+        printf("oh no");
+        printf("APP error%#x, failed to create enclave. \n", ret);	  
+        return INVALID_SESSION;
+    }
 
 }
 
 int main(int argc, char const *argv[]) {
+    uint32_t enclave_num = 0;
+
     if (initialize_enclave(&global_eid, "enclave.token", "enclave.signed.so") < 0) {
         std::cout << "Fail to initialize enclave." << std::endl;
         return 1;
     }
+    enclave_num++;
+    g_enclave_id_map.insert(std::pair<sgx_enclave_id_t, uint32_t>(global_eid, enclave_num));
+    
     if (initialize_enclave(&global2_eid, "enclave2.token", "enclave2.signed.so") < 0) {
         std::cout << "Fail to initialize enclave." << std::endl;
         return 1;
     }
-    sgx_status_t status;
+    enclave_num++;
+    g_enclave_id_map.insert(std::pair<sgx_enclave_id_t, uint32_t>(global2_eid, enclave_num));
     
+    uint32_t status;
     uint32_t ret_status;
+
+    //TODO figure out why I can't call session request where I need to, but calling it here works. Then comment it out here and uncommet the rest of the stuff in this funciton and put the call back in its appropriate place earlier in this method.
+    /* 
+    uint32_t ret_status;
+    sgx_dh_msg1_t dh_msg1;
+    uint32_t session_id;
+    sgx_status_t ret;
+    ret = session_request(global_eid, &status, global_eid, &dh_msg1, &session_id);
+    */
     status = test_create_session(global_eid, &ret_status, global_eid, global2_eid);
     std::cout << status << std::endl;
     if (status != SGX_SUCCESS) {
         std::cout << "noob" << std::endl;
     }
-    
+
     int ptr;
     status = generate_random_number(global_eid, &ptr);
     std::cout << status << std::endl;
@@ -106,6 +127,8 @@ int main(int argc, char const *argv[]) {
             (uint8_t*)&ptr, sizeof(ptr),
             (sgx_sealed_data_t*)sealed_data, sealed_size);
 
+            /* 
+
     if (!is_ecall_successful(status, "Sealing failed :(", ecall_status)) {
         return 1;
     }
@@ -120,7 +143,7 @@ int main(int argc, char const *argv[]) {
     }
 
     std::cout << "Seal round trip success! Receive back " << unsealed << std::endl;
-
+    */
     return 0;
 }
 

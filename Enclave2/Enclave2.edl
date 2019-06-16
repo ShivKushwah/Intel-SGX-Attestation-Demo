@@ -1,9 +1,12 @@
 enclave {
     from "Sealing2/Sealing2.edl" import *;
-
+    include "sgx_eid.h"
+    include "sgx_dh.h"
+    
     trusted {
         /* define ECALLs here. */
         public int generate_random_number2(void);
+        public uint32_t session_request(sgx_enclave_id_t src_enclave_id, [out] sgx_dh_msg1_t *dh_msg1, [out] uint32_t *session_id);
     };
 
     untrusted {

@@ -101,7 +101,8 @@ typedef struct _la_dh_session_t
 
 session_id_tracker_t *g_session_id_tracker[MAX_SESSION_COUNT];
 //std::map<sgx_enclave_id_t, dh_session_t>g_dest_session_info_map;
-
+sgx_enclave_id_t g_dest_session_info_map_id;
+dh_session_t g_dest_session_info_map_session;
 
 
 int generate_random_number2() {
@@ -170,7 +171,6 @@ ATTESTATION_STATUS session_request(sgx_enclave_id_t src_enclave_id,
     g_session_id_tracker[*session_id]->session_id = *session_id;
     session_info.status = IN_PROGRESS;
 
-    ocall_print("here!");
 
     //Generate Message1 that will be returned to Source Enclave
     status = sgx_dh_responder_gen_msg1((sgx_dh_msg1_t*)dh_msg1, &sgx_dh_session);
@@ -179,10 +179,11 @@ ATTESTATION_STATUS session_request(sgx_enclave_id_t src_enclave_id,
         free(g_session_id_tracker[*session_id]);
         return status;
     }
-    /* 
+ 
     memcpy(&session_info.in_progress.dh_session, &sgx_dh_session, sizeof(sgx_dh_session_t));
     //Store the session information under the correspoding source enlave id key
-    g_dest_session_info_map.insert(std::pair<sgx_enclave_id_t, dh_session_t>(src_enclave_id, session_info));
-    */
+    g_dest_session_info_map_id = src_enclave_id;
+    g_dest_session_info_map_session = session_info;
+    
     return status;
 }

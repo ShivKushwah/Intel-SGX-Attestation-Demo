@@ -181,7 +181,7 @@ App/Enclave_u.c: $(SGX_EDGER8R) Enclave/Enclave.edl
 	@echo "GEN  =>  $@"
 
 App/Enclave_u.o: App/Enclave_u.c
-	@$(CC) $(App_C_Flags) -c $< -o $@
+	@$(CXX) $(App_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 
 App/Enclave2_u.c: $(SGX_EDGER8R) Enclave2/Enclave2.edl
@@ -189,7 +189,7 @@ App/Enclave2_u.c: $(SGX_EDGER8R) Enclave2/Enclave2.edl
 	@echo "GEN  =>  $@"
 
 App/Enclave2_u.o: App/Enclave2_u.c
-	@$(CC) $(App_C_Flags) -c $< -o $@
+	@$(CXX) $(App_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 
 App/%.o: App/%.cpp
@@ -207,7 +207,7 @@ Enclave2/Enclave2_t.c: $(SGX_EDGER8R) Enclave2/Enclave2.edl
 	@echo "GEN  =>  $@"
 
 Enclave2/Enclave2_t.o: Enclave2/Enclave2_t.c
-	@$(CC) $(Enclave_C_Flags) -c $< -o $@
+	@$(CXX) $(Enclave_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 
 Enclave2/%.o: Enclave2/%.cpp
@@ -227,7 +227,7 @@ Enclave/Enclave_t.c: $(SGX_EDGER8R) Enclave/Enclave.edl
 	@echo "GEN  =>  $@"
 
 Enclave/Enclave_t.o: Enclave/Enclave_t.c
-	@$(CC) $(Enclave_C_Flags) -c $< -o $@
+	@$(CXX) $(Enclave_C_Flags) -c $< -o $@
 	@echo "CC   <=  $<"
 
 Enclave/%.o: Enclave/%.cpp

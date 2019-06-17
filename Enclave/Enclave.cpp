@@ -135,7 +135,6 @@ ATTESTATION_STATUS create_session(sgx_enclave_id_t src_enclave_id,
         if ((ATTESTATION_STATUS)retstatus != SUCCESS)
             return ((ATTESTATION_STATUS)retstatus);
     }
-    /* 
     else
     {
         return ATTESTATION_SE_ERROR;
@@ -146,7 +145,8 @@ ATTESTATION_STATUS create_session(sgx_enclave_id_t src_enclave_id,
     {
          return status;
     }
-
+    ocall_print("part 2");
+    /*
     //Send Message 2 to Destination Enclave and get Message 3 in return
     status = exchange_report_ocall(&retstatus, src_enclave_id, dest_enclave_id, &dh_msg2, &dh_msg3, session_id);
     if (status == SGX_SUCCESS)

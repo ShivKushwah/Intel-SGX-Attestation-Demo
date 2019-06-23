@@ -95,6 +95,11 @@ typedef struct _la_dh_session_t
 #include "sgx_thread.h"
 #include "sgx_tcrypto.h"
 
+
+dh_session_t dest_session_info_map;
+sgx_enclave_id_t dest_enclave_id_map;
+
+
 //Create a session with the destination enclave
 ATTESTATION_STATUS create_session(sgx_enclave_id_t src_enclave_id,
                          sgx_enclave_id_t dest_enclave_id,
@@ -146,7 +151,7 @@ ATTESTATION_STATUS create_session(sgx_enclave_id_t src_enclave_id,
          return status;
     }
     ocall_print("part 2");
-    /*
+    
     //Send Message 2 to Destination Enclave and get Message 3 in return
     status = exchange_report_ocall(&retstatus, src_enclave_id, dest_enclave_id, &dh_msg2, &dh_msg3, session_id);
     if (status == SGX_SUCCESS)
@@ -158,20 +163,22 @@ ATTESTATION_STATUS create_session(sgx_enclave_id_t src_enclave_id,
     {
         return ATTESTATION_SE_ERROR;
     }
-
+    
     //Process Message 3 obtained from the destination enclave
     status = sgx_dh_initiator_proc_msg3(&dh_msg3, &sgx_dh_session, &dh_aek, &responder_identity);
     if(SGX_SUCCESS != status)
     {
         return status;
     }
-
+    /*
+    //TODO uncomment below after finding it
     // Verify the identity of the destination enclave
     if(verify_peer_enclave_trust(&responder_identity) != SUCCESS)
     {
         return INVALID_SESSION;
     }
     */
+    
 
     memcpy(session_info->active.AEK, &dh_aek, sizeof(sgx_key_128bit_t));
     session_info->session_id = session_id;
@@ -196,16 +203,16 @@ uint32_t test_create_session(sgx_enclave_id_t src_enclave_id,
     
     //Core reference code function for creating a session
     ke_status = create_session(src_enclave_id, dest_enclave_id, &dest_session_info);
-    /* 
     //Insert the session information into the map under the corresponding destination enclave id
     if(ke_status == SUCCESS)
     {
-        g_src_session_info_map.insert(std::pair<sgx_enclave_id_t, dh_session_t>(dest_enclave_id, dest_session_info));
+        dest_enclave_id_map = dest_enclave_id;
+        dest_session_info_map = dest_session_info;
     }
     memset(&dest_session_info, 0, sizeof(dh_session_t));
+    ocall_print("done");
     return ke_status;
-    */
-   return 0;
+    
 }
 
 

@@ -103,6 +103,8 @@ session_id_tracker_t *g_session_id_tracker[MAX_SESSION_COUNT];
 //std::map<sgx_enclave_id_t, dh_session_t>g_dest_session_info_map;
 sgx_enclave_id_t g_dest_session_info_map_id;
 dh_session_t g_dest_session_info_map_session;
+uint32_t g_session_count = 0;
+
 
 
 int generate_random_number2() {
@@ -186,4 +188,143 @@ ATTESTATION_STATUS session_request(sgx_enclave_id_t src_enclave_id,
     g_dest_session_info_map_session = session_info;
     
     return status;
+    
 }
+
+
+//Respond to the request from the Source Enclave to close the session
+ATTESTATION_STATUS end_session(sgx_enclave_id_t src_enclave_id)
+{
+    ATTESTATION_STATUS status = SUCCESS;
+    int i;
+    dh_session_t session_info;
+    uint32_t session_id;
+    /*
+    //Get the session information from the map corresponding to the source enclave id
+    std::map<sgx_enclave_id_t, dh_session_t>::iterator it = g_dest_session_info_map.find(src_enclave_id);
+    if(it != g_dest_session_info_map.end())
+    {
+        session_info = it->second;
+    }
+    else
+    {
+        return INVALID_SESSION;
+    }
+    */
+   session_info = g_dest_session_info_map_session;
+
+    session_id = session_info.session_id;
+    //Erase the session information for the current session
+    //g_dest_session_info_map_session = NULL;
+    //TODO uncomment above and make it a g_dest a pointer and have it point to null
+
+
+    //Update the session id tracker
+    if (g_session_count > 0)
+    {
+        //check if session exists
+        for (i=1; i <= MAX_SESSION_COUNT; i++)
+        {
+            if(g_session_id_tracker[i-1] != NULL && g_session_id_tracker[i-1]->session_id == session_id)
+            {
+                memset(g_session_id_tracker[i-1], 0, sizeof(session_id_tracker_t));
+                free(g_session_id_tracker[i-1]);
+                g_session_count--;
+                break;
+            }
+        }
+    }
+
+    return status;
+
+}
+
+//Verify Message 2, generate Message3 and exchange Message 3 with Source Enclave
+ATTESTATION_STATUS exchange_report(sgx_enclave_id_t src_enclave_id,
+                          sgx_dh_msg2_t *dh_msg2,
+                          sgx_dh_msg3_t *dh_msg3,
+                          uint32_t session_id)
+{
+    sgx_key_128bit_t dh_aek;   // Session key
+    dh_session_t *session_info;
+    ATTESTATION_STATUS status = SUCCESS;
+    sgx_dh_session_t sgx_dh_session;
+    sgx_dh_session_enclave_identity_t initiator_identity;
+
+    if(!dh_msg2 || !dh_msg3)
+    {
+        return INVALID_PARAMETER_ERROR;
+    }
+
+    memset(&dh_aek,0, sizeof(sgx_key_128bit_t));
+
+     
+    do
+    {
+        /* 
+        //Retreive the session information for the corresponding source enclave id
+        std::map<sgx_enclave_id_t, dh_session_t>::iterator it = g_dest_session_info_map.find(src_enclave_id);
+        if(it != g_dest_session_info_map.end())
+        {
+            session_info = &it->second;
+        }
+        else
+        {
+            status = INVALID_SESSION;
+            break;
+        }
+        */
+
+       session_info = &g_dest_session_info_map_session;
+
+
+        if(session_info->status != IN_PROGRESS)
+        {
+            status = INVALID_SESSION;
+            break;
+        }
+
+        memcpy(&sgx_dh_session, &session_info->in_progress.dh_session, sizeof(sgx_dh_session_t));
+
+        dh_msg3->msg3_body.additional_prop_length = 0;
+        //Process message 2 from source enclave and obtain message 3
+        sgx_status_t se_ret = sgx_dh_responder_proc_msg2(dh_msg2, 
+                                                       dh_msg3, 
+                                                       &sgx_dh_session, 
+                                                       &dh_aek, 
+                                                       &initiator_identity);
+        if(SGX_SUCCESS != se_ret)
+        {
+            status = se_ret;
+            break;
+        }
+        
+        //TODO figure out where this method is coming from
+        //Verify source enclave's trust
+        //   if(verify_peer_enclave_trust(&initiator_identity) != SUCCESS)
+        // {
+        //     return INVALID_SESSION;
+        // }
+
+        //save the session ID, status and initialize the session nonce
+        session_info->session_id = session_id;
+        session_info->status = ACTIVE;
+        session_info->active.counter = 0;
+        memcpy(session_info->active.AEK, &dh_aek, sizeof(sgx_key_128bit_t));
+        memset(&dh_aek,0, sizeof(sgx_key_128bit_t));
+        g_session_count++;
+    }while(0);
+
+
+    if(status != SUCCESS)
+    {
+        end_session(src_enclave_id);
+    }
+
+
+    return status;
+
+}
+
+
+
